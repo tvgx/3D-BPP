@@ -549,9 +549,9 @@ def create_project_structure():
     """Tạo thư mục và ghi file"""
     print(f"Creating project: {PROJECT_ROOT}...")
     
-    for file_path, content in file_contents.items():
+    for data_path, content in file_contents.items():
         # Xây dựng đường dẫn đầy đủ
-        full_path = Path(PROJECT_ROOT) / file_path
+        full_path = Path(PROJECT_ROOT) / data_path
         
         # Tạo thư mục cha nếu chưa tồn tại
         full_path.parent.mkdir(parents=True, exist_ok=True)

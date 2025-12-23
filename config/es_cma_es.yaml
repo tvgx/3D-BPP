@@ -1,0 +1,8 @@
+algorithm:
+  name: "es"
+  parameters:
+    sigma_init_factor: 0.3 # sigma = 0.3 * range
+    mu_factor: 0.5         # mu = 0.5 * pop_size
+
+problem:
+  bin_dimensions: [100, 100, 100]

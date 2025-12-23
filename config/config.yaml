@@ -1,6 +1,6 @@
 problem:
   # Kích thước thùng chuẩn (ví dụ theo dataset Martello et al.) [cite: 1161]
-  bin_dimensions: [100, 100, 100]  # Depth (D), Width (W), Height (H)
+  bin_dimensions: [1000, 1000, 1000]  # Depth (D), Width (W), Height (H)
   dataset_path: "data/class1_sample.txt"
 
 encoding:

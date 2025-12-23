@@ -1,0 +1,8 @@
+Problem: Mendeley_3DBPP_RealWorld
+Bin: 100 100 100
+# ID, Length, Width, Height, Weight, Quantity, RotationConstraint
+# RotationConstraint: 0 = All Allowed, 1 = Vertical Rotation Only (No Flip)
+1, 20, 30, 40, 5.0, 10, 0
+2, 15, 15, 50, 10.0, 5, 1
+3, 50, 40, 30, 8.5, 2, 0
+4, 10, 10, 10, 1.0, 20, 1

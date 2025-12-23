@@ -1,0 +1,64 @@
+# =============================================================================
+# CONFIGURATION FOR LARGE SCALE 3D BIN PACKING PROBLEM (3D-BPP)
+# Optimized for Differential Evolution (DE) & Random Key Encoding
+# =============================================================================
+
+problem:
+  # Kích thước thùng mặc định theo yêu cầu
+  bin_dimensions: [1000, 1000, 1000]
+  # Đường dẫn tới tập dữ liệu Elhedhli
+  dataset_path: "data/instances/test-data/Input/Elhedhli_dataset/products.pkl"
+  # Kiểu bài toán: 3D Bin Packing
+  type: "3d_bpp"
+
+encoding:
+  # Sử dụng Random Key Encoding (Gonçalves & Resende)
+  type: "random_key"
+  # 3n genes: n (thứ tự), n (hướng xoay), n (heuristic vị trí)
+  chromosome_multiplier: 3 
+
+algorithm:
+  name: "de"
+  # Số lượng thế hệ (generations)
+  generations: 50
+  # Kích thước quần thể (pop_size)
+  pop_size: 30
+  
+  # Cấu hình chi tiết cho Differential Evolution (DE)
+  de:
+    # Tỷ lệ lai ghép (CR): Giữ 0.9 để bảo tồn các cụm gene đóng gói tốt
+    crossover_rate: 0.9
+    # Trọng số sai phân (F): 0.8 giúp duy trì sự đa dạng tìm kiếm
+    differential_weight: 0.8
+    # Chiến lược đột biến: current-to-best/1 (tăng tốc hội tụ cho data lớn)
+    strategy: "current-to-best/1"
+    # Kỹ thuật tự thích ứng SHADE (tùy chọn)
+    shade:
+      enabled: true
+      memory_size: 10
+
+evaluation:
+  # Hàm mục tiêu: Adjusted Number of Bins (aNB)
+  fitness_type: "anb"
+  # Sử dụng Maximal-Space Representation để quản lý không gian trống
+  simulator: "maximal_space"
+  # Ràng buộc hướng xoay: true (hỗ trợ tối đa 6 hướng xoay)
+  allow_rotation: true
+  # Heuristic vị trí mặc định: BBL (Back-Bottom-Left) hoặc BLB (Back-Left-Bottom)
+  default_heuristic: "BBL"
+
+system:
+  # Cho phép tính toán song song để xử lý 1 triệu items nhanh hơn
+  multiprocessing: true
+  num_workers: -1  # Sử dụng tối đa số nhân CPU có sẵn
+  # Lưu lại trạng thái tốt nhất sau mỗi thế hệ
+  checkpoint_interval: 5
+  log_level: "INFO"
+
+visualization:
+  # Bật chế độ hiển thị kết quả
+  enabled: true
+  # Do số lượng items lớn (1M), chỉ visualize top 5 bins đầu tiên để tránh tràn RAM
+  max_bins_to_viz: 5
+  # Xuất biểu đồ hội tụ (convergence plot)
+  save_convergence_plot: true
