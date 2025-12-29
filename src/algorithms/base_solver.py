@@ -1,7 +1,7 @@
 import numpy as np
 
 class BaseSolver:
-    def __init__(self, decoder, config):
+    def __init__(self, config, decoder):
         self.decoder = decoder
         self.config = config
         self.items_count = len(decoder.items)
@@ -10,7 +10,7 @@ class BaseSolver:
         self.chromosome_len = 3 * self.items_count
         
         # Khởi tạo quần thể ngẫu nhiên [0, 1]
-        self.pop_size = config['algorithm']['pop_size_multiplier'] * self.items_count
+        self.pop_size = config.get('pop_size_multiplier', 10) * self.items_count
         self.population = np.random.rand(self.pop_size, self.chromosome_len)
         self.fitnesses = np.array([float('inf')] * self.pop_size)
         

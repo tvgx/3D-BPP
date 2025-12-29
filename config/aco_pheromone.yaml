@@ -1,9 +1,0 @@
-algorithm:
-  name: "aco"
-  parameters:
-    alpha: 1.0            # Pheromone importance
-    beta: 3.0             # Heuristic importance (2 - 5)
-    evaporation_rate: 0.5 # rho
-
-problem:
-  bin_dimensions: [100, 100, 100]

@@ -8,16 +8,15 @@ class ConfigLoader:
     """
     
     @staticmethod
-    def load_config(config_path):
-        """
-        Loads a single YAML config file.
-        """
-        if not os.path.exists(config_path):
-            print(f"Warning: Config file {config_path} not found.")
-            return {}
-        
-        with open(config_path, 'r') as f:
-            return yaml.safe_load(f) or {}
+    def load_config(file_path):
+        try:
+            # Thêm encoding='utf-8' vào hàm open
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f) or {}
+        except UnicodeDecodeError:
+            # Backup cho trường hợp file lưu ở định dạng khác
+            with open(file_path, 'r', encoding='latin-1') as f:
+                return yaml.safe_load(f) or {}
 
     @staticmethod
     def merge_configs(base_config, override_config):
@@ -48,8 +47,6 @@ class ConfigLoader:
         mapping = {
             "ga": "ga_classic.yaml",
             "brkga": "brkga_v2.yaml",
-            "aco": "aco_pheromone.yaml",
-            "pso": "pso_swarm.yaml",
             "de": "de_shade.yaml",
             "es": "es_cma_es.yaml",
             "cmaes": "es_cma_es.yaml",
