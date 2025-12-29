@@ -1,5 +1,5 @@
 import re
-from core import Item
+from src.domain import Item
 
 class ElhedhliParser:
     @staticmethod

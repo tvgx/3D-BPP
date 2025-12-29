@@ -1,0 +1,17 @@
+problem:
+  default_bin_dims: [1200, 1200, 1200]
+  default_max_weight: 10000
+
+ga:
+  pop_size: 100
+  generations: 100
+  pc: 0.9
+  pm_factor: 1.0 # 1.0/dim
+  eta_c: 20
+  eta_m: 20
+
+es:
+  mu: 20
+  lam: 140
+  generations: 100
+  sigma: 0.1

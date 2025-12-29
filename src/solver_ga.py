@@ -1,33 +1,5 @@
 import numpy as np
-import copy
-from core import HeuristicDecoder
-
-class Solver:
-    def __init__(self, items, bin_dims, max_weight, pop_size, generations):
-        self.items = items
-        self.bin_dims = bin_dims
-        self.max_weight = max_weight
-        self.pop_size = pop_size
-        self.generations = generations
-        self.history = []
-        self.dim = 2 * len(items) # Priority + Rotation keys
-        self.best_solution = None
-        
-    @property
-    def best_bins(self):
-        if self.best_solution is None: return []
-        return HeuristicDecoder.decode(self.best_solution, self.items, self.bin_dims, self.max_weight)
-
-    def evaluate(self, chromosome):
-        bins = HeuristicDecoder.decode(chromosome, self.items, self.bin_dims, self.max_weight)
-        n_bins = len(bins)
-        if n_bins == 0: return float('inf')
-        
-        total_vol = sum([i[0].dims[0]*i[0].dims[1]*i[0].dims[2] for b in bins for i in b.items])
-        capacity = n_bins * (self.bin_dims[0] * self.bin_dims[1] * self.bin_dims[2])
-        fill_rate = total_vol / capacity
-        
-        return n_bins + (1.0 - fill_rate)
+from src.solver_base import Solver
 
 class GA(Solver):
     """
@@ -82,6 +54,7 @@ class GA(Solver):
             if best_f < min(self.history):
                  self.best_solution = self.population[best_idx_gen].copy()
             self.history.append(best_f)
+            
             if (g+1) % 10 == 0:
                 print(f"[GA] Gen {g+1}: Best Fitness = {best_f:.4f}")
                 
@@ -96,7 +69,6 @@ class GA(Solver):
         return self.population[best_i]
 
     def sbx_crossover(self, p1, p2):
-        # Simulated Binary Crossover
         c1, c2 = p1.copy(), p2.copy()
         rand = np.random.rand(self.dim)
         beta = np.empty(self.dim)
@@ -123,60 +95,3 @@ class GA(Solver):
         
         ind[mask] += delta
         np.clip(ind, 0, 1, out=ind)
-
-class ES(Solver):
-    """
-    (Mu + Lambda) Evolution Strategy.
-    Mu = 20, Lambda = 140.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.mu = 20
-        self.lam = 140
-        # Initialize population of size Mu
-        self.population = [np.random.rand(self.dim) for _ in range(self.mu)]
-        self.fitnesses = [self.evaluate(ind) for ind in self.population]
-        
-        self.sigma = 0.1 # Mutation strength
-        
-    def run(self):
-        best_idx = np.argmin(self.fitnesses)
-        self.best_solution = self.population[best_idx].copy()
-        best_f = self.fitnesses[best_idx]
-        self.history.append(best_f)
-        
-        for g in range(self.generations):
-            offspring = []
-            offspring_fits = []
-            
-            # Generate Lambda offspring from Mu parents
-            for _ in range(self.lam):
-                # Random parent selection
-                parent = self.population[np.random.randint(0, self.mu)]
-                child = parent + np.random.normal(0, self.sigma, self.dim)
-                child = np.clip(child, 0, 1)
-                
-                fit = self.evaluate(child)
-                offspring.append(child)
-                offspring_fits.append(fit)
-            
-            # (Mu + Lambda) Selection
-            # Pool parents and offspring
-            pool = self.population + offspring
-            pool_fits = self.fitnesses + offspring_fits
-            
-            # Sort and select best Mu
-            sorted_indices = np.argsort(pool_fits)
-            self.population = [pool[i] for i in sorted_indices[:self.mu]]
-            self.fitnesses = [pool_fits[i] for i in sorted_indices[:self.mu]]
-            
-            best_f = self.fitnesses[0]
-            if best_f < min(self.history):
-                 # Population was sorted, so index 0 is best
-                 self.best_solution = self.population[0].copy()
-            self.history.append(best_f)
-            
-            if (g+1) % 10 == 0:
-                print(f"[ES] Gen {g+1}: Best Fitness = {best_f:.4f}")
-        
-        return self.history

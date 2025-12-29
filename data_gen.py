@@ -1,7 +1,7 @@
 import random
 import pickle
 
-from core import Item
+from src.domain import Item
 
 def generate_dataset(num_items=50, save_path="dataset.pkl"):
     # Bin Constraints
