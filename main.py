@@ -1,172 +1,121 @@
-import yaml
+from data_gen import generate_dataset
+from solvers import GA, ES
+from core import Item
+from elhedhli_parser import ElhedhliParser
 import os
+import pickle
+import pandas as pd
 import argparse
-import numpy as np
-from src.utils.mendeley_parser import MendeleyParser
-from src.utils.pickle_parser import PickleParser
-from src.utils.config_loader import ConfigLoader
-from src.core.representation import RandomKeyRepresentation
-from src.evaluation.packing_simulator import PackingSimulator
-from src.evaluation.fitness import FitnessEvaluator
-from src.utils.visualization import Visualizer
-
-# Algorithms
-from src.algorithms.de import DE_SHADE
-from src.algorithms.es import CMA_ES
-from src.algorithms.mfea import MFEA
-from src.algorithms.brkga import BRKGA
-from src.algorithms.ga import GA
-
-class ProblemDecoder:
-    """
-    Adapter class to bridge Chromosome -> Fitness for Algorithms.
-    """
-    def __init__(self, items, bin_dims):
-        self.items = items
-        self.bin_dims = bin_dims # (D, W, H)
-
-    def decode(self, chromosome):
-        """
-        Decodes a chromosome into a list of packed Bins.
-        """
-        # 1. Decode Random Keys -> Packing Plan
-        sorted_indices, rotations, heuristics = RandomKeyRepresentation.decode(chromosome, len(self.items))
-        
-        # 2. Run Placement Heuristic (Simulator)
-        packed_bins = PackingSimulator.pack(
-            self.items, 
-            self.bin_dims, 
-            sorted_indices, 
-            rotations, 
-            heuristics
-        )
-        return packed_bins
-
-    def get_fitness(self, chromosome):
-        bins = self.decode(chromosome)
-        # Using simple capacity volume as default if not available, mainly for ANB calculation logic which might use it
-        return FitnessEvaluator.calculate_anb(bins) # Updated to use new calculate_anb signature
-    
-    # For MFEA (Task interface)
-    def evaluate(self, individual):
-        # MFEA passes an Individual object, others might pass chromosome directly
-        chrom = individual.chromosome if hasattr(individual, 'chromosome') else individual
-        return self.get_fitness(chrom)
-    
-    @property
-    def num_items(self):
-        return len(self.items)
+import matplotlib.pyplot as plt
 
 def main():
-    print("=== 3D Bin Packing Problem - Optimization System ===")
-    
-    # 0. Setup Arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--algo", type=str, default="de", choices=["de", "es", "mfea", "brkga", "ga", "nsga2"], help="Algorithm to run")
-    parser.add_argument("--data", type=str, default="data/instances/mendeley_v2/sample.txt", help="Path to data file")
-    parser.add_argument("--config", type=str, default=None, help="Path to custom config file (optional)")
-    parser.add_argument("--viz", action="store_true", help="Visualize result")
+    parser.add_argument("--algo", type=str, choices=["ga", "es"], default="ga", help="Algorithm to run")
+    parser.add_argument("--gen", type=int, default=100, help="Generations")
+    parser.add_argument("--data", type=str, default=None, help="Path to data file (.txt or .pkl)")
     args = parser.parse_args()
-
-    # 1. Load Config
-    # Strategy:
-    # a. Load Base Config (or Algo specific config as base)
-    # b. Load Custom Config if provided (Override)
     
-    print(f"Loading Configuration for: {args.algo.upper()}")
-    algo_config = ConfigLoader.get_algorithm_config(args.algo)
-    
-    if args.config and os.path.exists(args.config):
-        print(f"Loading Custom Config: {args.config}")
-        custom_config = ConfigLoader.load_config(args.config)
-        config = ConfigLoader.merge_configs(algo_config, custom_config)
+    # Batch Processing or Single File
+    if args.data and os.path.isdir(args.data):
+        # Process all txt files in directory
+        files = [f for f in os.listdir(args.data) if f.endswith(".txt") or f.endswith(".pkl")]
+        files.sort()
+        for f in files:
+            path = os.path.join(args.data, f)
+            print(f"\nPROCESSING: {path}")
+            run_single_file(path, args.algo, args.gen)
     else:
-        config = algo_config
-        
-    # Ensure critical sections exist if config file was empty or missing
-    if 'algorithm' not in config: config['algorithm'] = {'name': args.algo, 'generations': 50, 'pop_size': 30}
-    if 'problem' not in config: config['problem'] = {'bin_dimensions': [100, 100, 100]}
+        # Single file
+        run_single_file(args.data, args.algo, args.gen)
 
-    # 2. Load Data
-    print(f"Loading data from: {args.data}")
-    
-    if args.data.endswith(".pkl"):
-        items, bin_dims_from_file = PickleParser.parse(args.data)
-    else:
-        items, bin_dims_from_file = MendeleyParser.parse(args.data)
-    
-    if not items:
-        print("Error: No items loaded. Check data file path and format.")
-        return
+def run_single_file(data_path, algo, gen):
+    # Load Data
+    items, bin_dims, max_weight = load_data(data_path)
+    if not items: return
 
-    # Use bin dims from file if available, else config
-    if bin_dims_from_file != (0,0,0):
-        print(f"Bin Dimensions from file: {bin_dims_from_file}")
-        bin_dims = bin_dims_from_file
-    else:
-        bin_dims = tuple(config['problem']['bin_dimensions'])
-        print(f"Using default Bin Dimensions: {bin_dims}")
-
-    print(f"Total Items: {len(items)}")
-
-    # 3. Setup Decoder (The 'Task')
-    decoder = ProblemDecoder(items, bin_dims)
-
-    # 4. Initialize Algorithm
-    algo_name = args.algo.lower()
-    print(f"Initializing Algorithm: {algo_name.upper()}")
+    # print(f"Running {algo.upper()} on {len(items)} items...")
     
     solver = None
-    if algo_name == 'de':
-        solver = DE_SHADE(config['algorithm'], decoder)
-    elif algo_name == 'es':
-        solver = CMA_ES(config['algorithm'], decoder)
-    elif algo_name == 'mfea':
-        # MFEA typically needs multiple tasks.
-        # For demo, we can create 2 variations (e.g. subset of items or same task duplicated)
-        # Or just run it as single task (MFEA reduces to EA)
-        print("Note: Running MFEA in single-task mode for demo.")
-        solver = MFEA(config['algorithm'], [decoder]) 
-    elif algo_name == 'brkga':
-        solver = BRKGA(config['algorithm'], decoder)
-    elif algo_name == 'ga':
-        solver = GA(config['algorithm'], decoder) 
+    if algo == "ga":
+        solver = GA(items, bin_dims, max_weight, pop_size=100, generations=gen)
+    elif algo == "es":
+        solver = ES(items, bin_dims, max_weight, pop_size=20, generations=gen)
         
-    else:
-        print(f"Unknown algorithm: {algo_name}")
-        return
+    history = solver.run()
+    
+    # Get best solution
+    best_chrom = solver.best_solution
+    bins = solver.best_bins # Need to expose this from Solver/GA
+    
+    # Print formatted output
+    print_solution(bins)
 
-    # 5. Run Optimization
-    print("Starting optimization...")
-    solver.initialize()
-    solver.evolve()
+def load_data(path):
+    # Refactored load logic
+    if path and os.path.exists(path):
+        if path.endswith(".txt"):
+            items, bin_dims, max_weight = ElhedhliParser.parse(path)
+            if bin_dims == (0,0,0): bin_dims = (1200, 1200, 1200)
+            if max_weight == float('inf'): max_weight = 10000 
+            return items, bin_dims, max_weight
+        elif path.endswith(".pkl"):
+            try:
+                with open(path, "rb") as f:
+                    data = pickle.load(f)
+                if isinstance(data, dict) and "items" in data:
+                    return data["items"], data["bin_dims"], data["max_weight"]
+                elif isinstance(data, pd.DataFrame):
+                    bin_dims = (1200, 1200, 1200)
+                    max_weight = 10000 
+                    items = []
+                    for i, row in data.iterrows():
+                        w = row['width'] if 'width' in data.columns else row.get('w', 10)
+                        d = row['depth'] if 'depth' in data.columns else row.get('d', 10)
+                        h = row['height'] if 'height' in data.columns else row.get('h', 10)
+                        wt = row['weight'] if 'weight' in data.columns else row.get('weight', 1)
+                        items.append(Item(i, int(d), int(w), int(h), float(wt)))
+                    return items, bin_dims, max_weight
+                else:
+                    return [], (0,0,0), 0
+            except:
+                return [], (0,0,0), 0
     
-    # 6. Retrieve Best Result
-    # Adapting return types
-    if algo_name == 'mfea':
-        # For MFEA, get best from population
-        best_ind = solver.population.get_best()
-        best_chrom = best_ind.chromosome
-        best_fitness = best_ind.fitness if best_ind.fitness != float('inf') else decoder.get_fitness(best_chrom)
-    else:
-        best_chrom = solver.best_solution
-        best_fitness = solver.best_fitness
-        
-    print(f"\nOptimization Finished.")
-    print(f"Best Fitness (aNB): {best_fitness:.4f}")
-    
-    # 7. Decode and Visualize
-    final_bins = decoder.decode(best_chrom)
-    print(f"Bins Used: {len(final_bins)}")
-    
-    for i, b in enumerate(final_bins):
-        print(f"  Bin {i}: Fill Rate = {b.get_fill_rate():.2%}, Items = {len(b.items)}")
+    # Default fallback logic omitted for batch mode simplicity, or keep if needed
+    # ...
+    return [], (0,0,0), 0
 
-    if args.viz:
-        print("Generating visualization...")
-        output_file = "result_visualization.html"
-        Visualizer.visualize_solution(final_bins, save_path=output_file)
-        print(f"Visualization saved to: {os.path.abspath(output_file)}")
+def print_solution(bins):
+    total_bins = len(bins)
+    total_items = sum([len(b.items) for b in bins])
+    print(f"# Number of bins used: {total_bins}")
+    print(f"# Number of cases packed: {total_items}")
+    # print(f"# Objective value: ...") 
+    
+    print(" ")
+    print(f"{'id':>4}  {'bin-loc':>9}  {'orientation':>13}  {'x':>3}  {'y':>3}  {'z':>3}  {'x\'':>4}  {'y\'':>4}  {'z\'':>4}  {'weight':>8}")
+    print(f"{'-'*4}  {'-'*9}  {'-'*13}  {'-'*3}  {'-'*3}  {'-'*3}  {'-'*4}  {'-'*4}  {'-'*4}  {'-'*8}")
+    
+    for b_idx, b in enumerate(bins):
+        for (item, pos, dims) in b.items:
+            # Orientation? We have item.dims (original) and dims (packed).
+            # Need to infer orientation index (1-6). 
+            # Simple heuristic matching
+            orient = match_orientation(item.dims, dims)
+            
+            print(f"{item.id:>4}  {b_idx+1:>9}  {orient:>13}  {pos[0]:>3}  {pos[1]:>3}  {pos[2]:>3}  {dims[0]:>4}  {dims[1]:>4}  {dims[2]:>4}  {item.weight:>8.0f}")
+
+def match_orientation(orig, curr):
+    d, w, h = orig
+    perms = [
+        (d, w, h), (d, h, w),
+        (w, d, h), (w, h, d),
+        (h, d, w), (h, w, d)
+    ]
+    for i, p in enumerate(perms):
+        if p == curr:
+            return i + 1 # 1-based index
+    return 0
+
 
 if __name__ == "__main__":
     main()

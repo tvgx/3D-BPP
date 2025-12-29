@@ -1,9 +1,0 @@
-algorithm:
-  name: "de"
-  parameters:
-    memory_size: 8        # 6 - 10 (H)
-    scaling_factor_init: 0.5 # F
-    crossover_rate_init: 0.5 # Cr
-
-problem:
-  bin_dimensions: [100, 100, 100]

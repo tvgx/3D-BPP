@@ -1,9 +1,0 @@
-algorithm:
-  name: "ga"
-  parameters:
-    population_size_multiplier: 15 # 10n - 20n
-    crossover_prob: 0.85 # 0.8 - 0.9
-    mutation_prob_factor: 1.0 # 1/n -> logic will derive mutation_prob = 1/n * factor
-
-problem:
-  bin_dimensions: [100, 100, 100]

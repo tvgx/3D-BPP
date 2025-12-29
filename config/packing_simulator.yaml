@@ -1,4 +1,0 @@
-simulator:
-  allow_rotation: true
-  heuristic_type: 0 # 0: BBL, 1: BLB
-  min_fill_rate: 0.0

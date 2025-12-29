@@ -1,7 +1,0 @@
-algorithm:
-  name: "mfea"
-  parameters:
-    rmp: 0.3 # Random Mating Probability
-
-problem:
-  bin_dimensions: [100, 100, 100]
