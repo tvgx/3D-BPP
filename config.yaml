@@ -15,3 +15,18 @@ es:
   lam: 140
   generations: 100
   sigma: 0.1
+
+aco:
+  pop_size: 100
+  generations: 100
+  alpha: 1.0      # Pheromone importance
+  beta: 2.0       # Heuristic importance
+  rho: 0.1        # Evaporation rate
+  Q: 1.0          # Pheromone deposit amount
+
+pso:
+  pop_size: 100
+  generations: 100
+  w: 0.7          # Inertia weight
+  c1: 2.0         # Cognitive parameter
+  c2: 2.0         # Social parameter
