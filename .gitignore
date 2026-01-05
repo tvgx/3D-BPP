@@ -208,8 +208,8 @@ __marimo__/
 
 .early.coverage
 
-# Results and output files
-results/
+# Results and output files (commented out - results folder is now tracked)
+# results/
 *.html
 *.png
 !convergence_plot.png
