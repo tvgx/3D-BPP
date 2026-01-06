@@ -5,7 +5,7 @@ import yaml
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from data_gen import generate_dataset
+from src.domain import Item
 from elhedhli_parser import ElhedhliParser
 from src.solver_ga import GA
 from src.solver_es import ES
@@ -86,7 +86,13 @@ def run_single_file(data_path, algo, gen, config, enable_viz=False, limit=None):
     elif algo == "pso":
         pop_size = config.get("pso", {}).get("pop_size", 100)
         solver = PSO(items, bin_dims, max_weight, pop_size=pop_size, generations=gen)
-        
+    
+    if solver is None:
+        raise ValueError(f"Unsupported algorithm '{algo}'. Expected one of: ga, es, aco, pso.")
+
+    if not hasattr(solver, 'run') or solver.run is None:
+        raise AttributeError(f"Solver for algorithm '{algo}' does not implement a 'run' method.")
+
     history = solver.run()
     
     # Get best solution
@@ -186,16 +192,6 @@ def load_data(path, config, limit=None):
                      return [], (0,0,0), 0
             except:
                  return [], (0,0,0), 0
-    
-    # Fallback/Generate
-    # If using generated data, we rely on data_gen default
-    try:
-        with open("dataset.pkl", "rb") as f:
-             data = pickle.load(f)
-        return data["items"], data["bin_dims"], data["max_weight"]
-    except:
-        data = generate_dataset()
-        return data["items"], data["bin_dims"], data["max_weight"]
 
 def print_solution(bins):
     total_bins = len(bins)
