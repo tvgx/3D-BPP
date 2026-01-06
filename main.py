@@ -73,19 +73,21 @@ def run_single_file(data_path, algo, gen, config, enable_viz=False, limit=None):
     algo_instance_dir = os.path.join(results_dir, f"{algo}_{instance_name}")
     os.makedirs(algo_instance_dir, exist_ok=True)
 
+    fitness_k = config.get("problem", {}).get("fitness_k", 2.0)
+    
     solver = None
     if algo == "ga":
         pop_size = config.get("ga", {}).get("pop_size", 100)
-        solver = GA(items, bin_dims, max_weight, pop_size=pop_size, generations=gen)
+        solver = GA(items, bin_dims, max_weight, pop_size=pop_size, generations=gen, fitness_k=fitness_k)
     elif algo == "es":
         # ES uses internal Mu/Lambda from config usually, but passing gen
-        solver = ES(items, bin_dims, max_weight, pop_size=0, generations=gen)
+        solver = ES(items, bin_dims, max_weight, pop_size=0, generations=gen, fitness_k=fitness_k)
     elif algo == "aco":
         pop_size = config.get("aco", {}).get("pop_size", 100)
-        solver = ACO(items, bin_dims, max_weight, pop_size=pop_size, generations=gen)
+        solver = ACO(items, bin_dims, max_weight, pop_size=pop_size, generations=gen, fitness_k=fitness_k)
     elif algo == "pso":
         pop_size = config.get("pso", {}).get("pop_size", 100)
-        solver = PSO(items, bin_dims, max_weight, pop_size=pop_size, generations=gen)
+        solver = PSO(items, bin_dims, max_weight, pop_size=pop_size, generations=gen, fitness_k=fitness_k)
     
     if solver is None:
         raise ValueError(f"Unsupported algorithm '{algo}'. Expected one of: ga, es, aco, pso.")

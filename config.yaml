@@ -1,6 +1,7 @@
 problem:
   default_bin_dims: [1200, 1200, 1200]
   default_max_weight: 10000
+  fitness_k: 2.0
 
 ga:
   pop_size: 100
